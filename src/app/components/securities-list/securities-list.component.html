@@ -1,8 +1,6 @@
-<filterable-table
-  class="security-list"
-  [dataSource]="securities$ | async"
-  [isLoading]="loadingSecurities$ | async"
->
+<filterable-table class="security-list" [dataSource]="securities$ | async"
+  [isLoading]="(loadingSecurities$ | async) ?? true" [columns]='displayedColumns' [filterFields]='filterFields'
+  [filterInitialValue]='filterInitialValue' (filterChange)='onFilterChange($event)'>
   <ng-container matColumnDef="name">
     <th mat-header-cell *matHeaderCellDef>Name</th>
     <td mat-cell *matCellDef="let security">{{ security.name }}</td>
