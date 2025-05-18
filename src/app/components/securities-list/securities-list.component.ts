@@ -58,7 +58,7 @@ export class SecuritiesListComponent {
       ]
     },
     {
-      id: 'currency', name: 'currency', label: 'currency', type: 'multiselect', options: [
+      id: 'currency', name: 'currency', label: 'currency', type: 'select', options: [
         { label: 'USD', value: 'USD' },
         { label: 'EUR', value: 'EUR' },
         { label: 'GBP', value: 'GBP' }
@@ -92,6 +92,7 @@ export class SecuritiesListComponent {
     }
     if (typeof filter.isPrivate === 'boolean') {
       sanitized.isPrivate = filter.isPrivate;
+      console.log(filter.isPrivate, "hh")
     }
     return sanitized;
   }
@@ -130,7 +131,7 @@ export class SecuritiesListComponent {
   public onPageEvent(event: PageEvent) {
     if (event.pageSize !== this.pageSize) {
       this.pageSize = event.pageSize;
-      this.currentPage$.next(1); // Reset to first page if page size changes
+      this.currentPage$.next(1);
       if (this.paginator) {
         this.paginator.firstPage();
       }

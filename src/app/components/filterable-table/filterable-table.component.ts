@@ -14,8 +14,9 @@ import {
   Output,
   EventEmitter,
   OnInit,
+  ChangeDetectorRef,
 } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import {
   MatColumnDef,
@@ -83,25 +84,29 @@ export class FilterableTableComponent<T> implements AfterContentInit, OnInit, On
   tableDataSource: MatTableDataSource<T> | null = null;
   @Input() isLoading: boolean | null = false;
   @Input() ariaLabel: String = 'Data table';
-
+private formSub?: Subscription;
   @Output() rowClick = new EventEmitter<T>();
   @ContentChild('loading', { read: TemplateRef }) loadingTemplate?: TemplateRef<any>;
   @ContentChild('empty', { read: TemplateRef }) emptyTemplate?: TemplateRef<any>;
 
-  constructor(private fb: FormBuilder) { }
+  constructor(private fb: FormBuilder, private cd: ChangeDetectorRef) { }
 
   ngOnInit(): void {
     this.initFilterForm();
+    console.log('filterForm controls:', this.filterForm.controls);
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['filterInitialValue'] && !changes['filterInitialValue'].firstChange) {
+    if ((changes['filterFields'] && !changes['filterFields'].firstChange) ||
+      (changes['filterInitialValue'] && !changes['filterInitialValue'].firstChange)) {
       this.initFilterForm();
     }
     if (changes['columns'] && !changes['columns'].firstChange) {
       this.table?.renderRows();
     }
   }
+
+
   public ngAfterContentInit(): void {
     this.columnDefs?.forEach((columnDef) =>
       this.table?.addColumnDef(columnDef)
@@ -113,13 +118,44 @@ export class FilterableTableComponent<T> implements AfterContentInit, OnInit, On
     this.table?.setNoDataRow(this.noDataRow ?? null);
   }
 
+  
   private initFilterForm() {
+    if (this.formSub) {
+      this.formSub.unsubscribe(); // Clean up previous subscriptions!
+    }
     const group: any = {};
     for (const field of this.filterFields) {
-      group[field.name] = [this.filterInitialValue[field.name] ?? (field.type === 'multiselect' ? [] : '')]
+      let defaultValue: any;
+      if (this.filterInitialValue[field.name] !== undefined) {
+        defaultValue = this.filterInitialValue[field.name]
+      } else {
+        switch (field.type) {
+          case 'multiselect':
+            defaultValue = [];
+            break;
+          case 'select':
+            defaultValue = '';
+            break;
+          case 'boolean':
+            defaultValue = false;
+            break;
+          case 'number':
+            defaultValue = null;
+            break;
+          default:
+            defaultValue = '';
+            break;
+        }
+      }
+      group[field.name] = [defaultValue]
     }
     this.filterForm = this.fb.group(group);
-    this.filterForm.valueChanges.subscribe(value => this.filterChange.emit(value));
+    this.cd.markForCheck();
+     this.formSub = this.filterForm.valueChanges.subscribe(value => {
+      console.log('Filter value changed:', value);
+      this.filterChange.emit(value);
+    });
+
     this.filterChange.emit(this.filterForm.value);
   }
 
