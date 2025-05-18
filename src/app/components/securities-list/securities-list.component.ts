@@ -64,7 +64,7 @@ export class SecuritiesListComponent {
         { label: 'GBP', value: 'GBP' }
       ]
     },
-    { id: 'isPrivate', name: 'isPrivate', label: 'Private', type: 'boolean' }
+    { id: 'isPrivate', name: 'isPrivate', label: 'Private', type: 'boolean' },
   ];
   protected filterInitialValue = {};
   protected filterChange$ = new BehaviorSubject<any>(this.filterInitialValue);
@@ -87,12 +87,14 @@ export class SecuritiesListComponent {
     if (Array.isArray(filter.type) && filter.type.length > 0) {
       sanitized.type = filter.type;
     }
-    if (Array.isArray(filter.currency) && filter.currency.length > 0) {
+    // if (Array.isArray(filter.currency) && filter.currency.length > 0) {
+    //   sanitized.currency = filter.currency;
+    // }
+    if (typeof filter.currency === 'string' && filter.currency !== '') {
       sanitized.currency = filter.currency;
     }
     if (typeof filter.isPrivate === 'boolean') {
       sanitized.isPrivate = filter.isPrivate;
-      console.log(filter.isPrivate, "hh")
     }
     return sanitized;
   }

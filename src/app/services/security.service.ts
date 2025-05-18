@@ -41,10 +41,11 @@ export class SecurityService {
         (!securityFilter.name || s.name.toLowerCase().includes(securityFilter.name.trim().toLowerCase())) &&
         (!securityFilter.type ||
           securityFilter.type.some((type) => s.type === type)) &&
-        (!securityFilter.currency ||
-          securityFilter.currency.some(
-            (currency) => s.currency == currency
-          )) &&
+        // (!securityFilter.currency ||
+        //   securityFilter.currency.some(
+        //     (currency) => s.currency == currency
+        //   )) &&
+        (securityFilter.currency === undefined || securityFilter.currency === s.currency) &&
         (securityFilter.isPrivate === undefined ||
           securityFilter.isPrivate === s.isPrivate)
     );

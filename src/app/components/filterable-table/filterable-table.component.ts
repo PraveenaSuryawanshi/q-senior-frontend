@@ -16,7 +16,7 @@ import {
   OnInit,
   ChangeDetectorRef,
 } from '@angular/core';
-import { Observable, Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged, Observable, Subscription } from 'rxjs';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import {
   MatColumnDef,
@@ -34,6 +34,8 @@ import { CommonModule } from '@angular/common';
 import { MatFormField } from '@angular/material/form-field';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatOptionModule } from '@angular/material/core';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 
 export interface FilterField {
   name: string;
@@ -47,7 +49,7 @@ export interface FilterField {
 @Component({
   selector: 'filterable-table',
   standalone: true,
-  imports: [MatOptionModule, MatCheckboxModule, MatFormField, MatProgressSpinner, MatTable, ReactiveFormsModule, MatInputModule, MatSelectModule, CommonModule],
+  imports: [MatButtonModule, MatIconModule, MatOptionModule, MatCheckboxModule, MatFormField, MatProgressSpinner, MatTable, ReactiveFormsModule, MatInputModule, MatSelectModule, CommonModule],
   templateUrl: './filterable-table.component.html',
   styleUrl: './filterable-table.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -84,7 +86,7 @@ export class FilterableTableComponent<T> implements AfterContentInit, OnInit, On
   tableDataSource: MatTableDataSource<T> | null = null;
   @Input() isLoading: boolean | null = false;
   @Input() ariaLabel: String = 'Data table';
-private formSub?: Subscription;
+  private formSub?: Subscription;
   @Output() rowClick = new EventEmitter<T>();
   @ContentChild('loading', { read: TemplateRef }) loadingTemplate?: TemplateRef<any>;
   @ContentChild('empty', { read: TemplateRef }) emptyTemplate?: TemplateRef<any>;
@@ -93,7 +95,6 @@ private formSub?: Subscription;
 
   ngOnInit(): void {
     this.initFilterForm();
-    console.log('filterForm controls:', this.filterForm.controls);
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -106,7 +107,6 @@ private formSub?: Subscription;
     }
   }
 
-
   public ngAfterContentInit(): void {
     this.columnDefs?.forEach((columnDef) =>
       this.table?.addColumnDef(columnDef)
@@ -118,10 +118,10 @@ private formSub?: Subscription;
     this.table?.setNoDataRow(this.noDataRow ?? null);
   }
 
-  
-  private initFilterForm() {
+
+  private initFilterForm() {   
     if (this.formSub) {
-      this.formSub.unsubscribe(); // Clean up previous subscriptions!
+      this.formSub.unsubscribe();
     }
     const group: any = {};
     for (const field of this.filterFields) {
@@ -137,7 +137,7 @@ private formSub?: Subscription;
             defaultValue = '';
             break;
           case 'boolean':
-            defaultValue = false;
+            defaultValue = undefined;
             break;
           case 'number':
             defaultValue = null;
@@ -150,11 +150,17 @@ private formSub?: Subscription;
       group[field.name] = [defaultValue]
     }
     this.filterForm = this.fb.group(group);
-    this.cd.markForCheck();
-     this.formSub = this.filterForm.valueChanges.subscribe(value => {
-      console.log('Filter value changed:', value);
-      this.filterChange.emit(value);
-    });
+    this.cd.markForCheck()
+    this.isLoading = false;
+    this.formSub = this.filterForm.valueChanges
+      .pipe(
+        debounceTime(1000),
+        distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b))
+      )
+      .subscribe(value => {
+        this.isLoading = false;
+        this.filterChange.emit(value);
+      });
 
     this.filterChange.emit(this.filterForm.value);
   }

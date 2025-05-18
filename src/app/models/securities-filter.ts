@@ -6,6 +6,6 @@ export interface PagingFilter {
 export interface SecuritiesFilter extends PagingFilter {
   name?: string;
   type?: string[];
-  currency?: string[];
+  currency?: string;
   isPrivate?: boolean;
 }
