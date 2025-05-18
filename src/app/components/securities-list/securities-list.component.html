@@ -25,3 +25,7 @@
     <td class="mat-cell" colspan="3"><i>No data</i></td>
   </tr>
 </filterable-table>
+
+<mat-paginator [length]="total$ | async" [pageSize]="pageSize" [pageSizeOptions]="pageSizeOptions"
+  (page)="onPageEvent($event)">
+</mat-paginator>

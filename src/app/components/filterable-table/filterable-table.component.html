@@ -58,8 +58,5 @@
     <table mat-table [dataSource]="dataSource ?? []" class="mat-elevation-z8">
       <ng-content></ng-content>
     </table>
-    <mat-paginator [length]="totalItems" [pageSize]="pageSize" [pageSizeOptions]="pageSizeOptions"
-      (page)="onPageChange($event)" showFirstLastButtons>
-    </mat-paginator>
   </div>
 </div>

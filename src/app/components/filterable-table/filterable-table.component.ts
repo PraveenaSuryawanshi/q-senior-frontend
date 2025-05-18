@@ -13,7 +13,6 @@ import {
   SimpleChanges,
   Output,
   EventEmitter,
-  AfterViewInit,
   OnInit,
 } from '@angular/core';
 import { Observable } from 'rxjs';
@@ -34,7 +33,6 @@ import { CommonModule } from '@angular/common';
 import { MatFormField } from '@angular/material/form-field';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatOptionModule } from '@angular/material/core';
-import { MatPaginator, MatPaginatorModule , PageEvent } from '@angular/material/paginator';
 
 export interface FilterField {
   name: string;
@@ -48,7 +46,7 @@ export interface FilterField {
 @Component({
   selector: 'filterable-table',
   standalone: true,
-  imports: [MatOptionModule, MatPaginatorModule, MatCheckboxModule, MatFormField, MatProgressSpinner, MatTable, ReactiveFormsModule, MatInputModule, MatSelectModule, CommonModule],
+  imports: [MatOptionModule, MatCheckboxModule, MatFormField, MatProgressSpinner, MatTable, ReactiveFormsModule, MatInputModule, MatSelectModule, CommonModule],
   templateUrl: './filterable-table.component.html',
   styleUrl: './filterable-table.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -59,8 +57,7 @@ export interface FilterField {
     '[attr.aria-label]': 'ariaLabel'
   }
 })
-export class FilterableTableComponent<T> implements  AfterContentInit, AfterViewInit, OnInit, OnChanges {
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
+export class FilterableTableComponent<T> implements AfterContentInit, OnInit, OnChanges {
 
   // Filter bar intergartion 
   @Input() filterFields: FilterField[] = [];
@@ -87,13 +84,7 @@ export class FilterableTableComponent<T> implements  AfterContentInit, AfterView
   @Input() isLoading: boolean | null = false;
   @Input() ariaLabel: String = 'Data table';
 
-  currentPage = 0;
-  pageSize = 5;
-  pageSizeOptions = [5, 10, 25, 100];
-  totalItems = 0; 
-
   @Output() rowClick = new EventEmitter<T>();
-  @Output() pageChange = new EventEmitter<{ pageIndex: number, pageSize: number }>();
   @ContentChild('loading', { read: TemplateRef }) loadingTemplate?: TemplateRef<any>;
   @ContentChild('empty', { read: TemplateRef }) emptyTemplate?: TemplateRef<any>;
 
@@ -101,7 +92,6 @@ export class FilterableTableComponent<T> implements  AfterContentInit, AfterView
 
   ngOnInit(): void {
     this.initFilterForm();
-    this.setupDataSource();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -110,9 +100,6 @@ export class FilterableTableComponent<T> implements  AfterContentInit, AfterView
     }
     if (changes['columns'] && !changes['columns'].firstChange) {
       this.table?.renderRows();
-    }
-    if (changes['dataSource'] && !changes['dataSource'].firstChange) {
-      this.setupDataSource();
     }
   }
   public ngAfterContentInit(): void {
@@ -126,14 +113,6 @@ export class FilterableTableComponent<T> implements  AfterContentInit, AfterView
     this.table?.setNoDataRow(this.noDataRow ?? null);
   }
 
-  ngAfterViewInit(): void {
-    
-    if (this.tableDataSource && this.paginator) {
-      this.tableDataSource.paginator = this.paginator;
-    }
-  }
-
-  
   private initFilterForm() {
     const group: any = {};
     for (const field of this.filterFields) {
@@ -144,27 +123,6 @@ export class FilterableTableComponent<T> implements  AfterContentInit, AfterView
     this.filterChange.emit(this.filterForm.value);
   }
 
-  private setupDataSource() {
-    if (Array.isArray(this.dataSource)) {
-      this.tableDataSource = new MatTableDataSource<T>(this.dataSource);
-      this.totalItems = this.dataSource.length;
-      if (this.paginator) {
-        this.tableDataSource.paginator = this.paginator;
-      }
-    } else {
-      this.tableDataSource = null;
-    }
-  }
-
-  onPageChange(event: PageEvent) {
-  this.pageSize = event.pageSize;
-  this.currentPage = event.pageIndex;
-  this.pageChange.emit({ pageIndex: this.currentPage, pageSize: this.pageSize });
-}
-
-   loadPage(pageIndex: number, pageSize: number) {
-    this.pageChange.emit({ pageIndex, pageSize });
-  }
   resetFilter() {
     this.filterForm.reset();
     this.filterChange.emit(this.filterForm.value);

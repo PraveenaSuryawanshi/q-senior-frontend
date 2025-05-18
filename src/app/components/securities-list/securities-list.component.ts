@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, ViewChild } from '@angular/core';
 import {
   MatCell,
   MatCellDef,
@@ -11,12 +11,13 @@ import {
   MatRow,
   MatRowDef,
 } from '@angular/material/table';
-import { Observable, BehaviorSubject, switchMap, startWith, filter } from 'rxjs';
+import { Observable, BehaviorSubject, switchMap, startWith, map } from 'rxjs';
 import { indicate } from '../../utils';
 import { Security } from '../../models/security';
-import { SecurityService } from '../../services/security.service';
+import { SecuritiesResponse, SecurityService } from '../../services/security.service';
 import { FilterableTableComponent, FilterField } from '../filterable-table/filterable-table.component';
 import { AsyncPipe } from '@angular/common';
+import { MatPaginator, MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 
 @Component({
   selector: 'securities-list',
@@ -30,6 +31,7 @@ import { AsyncPipe } from '@angular/common';
     MatCell,
     MatCellDef,
     MatHeaderRow,
+    MatPaginatorModule,
     MatHeaderRowDef,
     MatNoDataRow,
     MatRowDef,
@@ -50,9 +52,9 @@ export class SecuritiesListComponent {
         { label: 'BankAccount', value: 'BankAccount' },
         { label: 'Closed-endFund', value: 'Closed-endFund' },
         { label: 'DirectHolding', value: 'DirectHolding' },
-        {label: 'Generic', value:'Generic'},
-        {label: 'Collectibl', value:'Collectibl'},
-        {label: 'RealEstate', value:'RealEstate'}
+        { label: 'Generic', value: 'Generic' },
+        { label: 'Collectibl', value: 'Collectibl' },
+        { label: 'RealEstate', value: 'RealEstate' }
       ]
     },
     {
@@ -69,6 +71,13 @@ export class SecuritiesListComponent {
   private _securityService = inject(SecurityService);
   protected loadingSecurities$: BehaviorSubject<boolean> =
     new BehaviorSubject<boolean>(false);
+
+  protected pageSize = 10;
+  protected pageSizeOptions: number[] = [5, 10, 20];
+  protected currentPage$ = new BehaviorSubject<number>(1);
+  protected total$ = new BehaviorSubject<number>(0);
+  @ViewChild(MatPaginator) paginator: MatPaginator | undefined;
+
 
   private sanitizeFilter(filter: any): any {
     const sanitized: any = {};
@@ -89,11 +98,44 @@ export class SecuritiesListComponent {
 
   protected securities$: Observable<Security[]> = this.filterChange$.pipe(
     startWith(this.filterInitialValue),
-    switchMap(filter => this._securityService.getSecurities(this.sanitizeFilter(filter)).pipe(indicate(this.loadingSecurities$)))
+    switchMap(filter =>
+      this.currentPage$.pipe(
+        startWith(1),
+        switchMap(currentPage => {
+          const sanitized = this.sanitizeFilter(filter);
+          sanitized.skip = (currentPage - 1) * this.pageSize;
+          sanitized.limit = this.pageSize;
+          return this._securityService.getSecurities(sanitized).pipe(
+            indicate(this.loadingSecurities$),
+            map((res: SecuritiesResponse) => {
+              this.total$.next(res.total);
+              return res.data;
+            })
+          );
+        })
+      )
+    )
   );
 
-
   public onFilterChange(filter: any) {
+    this.currentPage$.next(1);
     this.filterChange$.next(filter);
+    if (this.paginator) {
+      this.paginator.firstPage();
+    }
+  }
+  currentPage = 0;
+  totalItems = 0;
+
+  public onPageEvent(event: PageEvent) {
+    if (event.pageSize !== this.pageSize) {
+      this.pageSize = event.pageSize;
+      this.currentPage$.next(1); // Reset to first page if page size changes
+      if (this.paginator) {
+        this.paginator.firstPage();
+      }
+    } else {
+      this.currentPage$.next(event.pageIndex + 1);
+    }
   }
 }

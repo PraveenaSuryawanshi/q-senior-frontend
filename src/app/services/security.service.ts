@@ -4,6 +4,11 @@ import { Security } from '../models/security';
 import { SECURITIES } from '../mocks/securities-mocks';
 import { SecuritiesFilter } from '../models/securities-filter';
 
+export interface SecuritiesResponse {
+  data: Security[];
+  total: number;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -11,13 +16,19 @@ export class SecurityService {
   /**
    * Get Securities server request mock
    * */
-  getSecurities(securityFilter?: SecuritiesFilter): Observable<Security[]> {
-    const filteredSecurities = this._filterSecurities(securityFilter).slice(
-      securityFilter?.skip ?? 0,
-      securityFilter?.limit ?? 100
-    );
+  getSecurities(securityFilter?: SecuritiesFilter): Observable<SecuritiesResponse> {
+    const filteredSecurities = this._filterSecurities(securityFilter);
+    const skip = securityFilter?.skip ?? 0;
+    const limit = securityFilter?.limit ?? 100;
 
-    return of(filteredSecurities).pipe(delay(1000));
+    const paginatedSecurities = filteredSecurities.slice(skip, skip + limit);
+
+    const response: SecuritiesResponse = {
+      data: paginatedSecurities,
+      total: filteredSecurities.length,
+    };
+
+    return of(response).pipe(delay(1000));
   }
 
   private _filterSecurities(
